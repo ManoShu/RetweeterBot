@@ -55,10 +55,11 @@ def create_table(dynamodb=None):
 
     return table
 
-def get_last_id() -> str:
+def get_last_id(dynamo=None) -> str:
     #here a query to AWS's DynamoDB will be made to get the last retweeted id
 
-    dynamo = get_dynamo()
+    if not dynamo:
+        dynamo = get_dynamo()
 
     existing_tables = [x.name for x in dynamo.tables.all()]
     if DATA_TABLE not in existing_tables:
@@ -77,9 +78,13 @@ def get_last_id() -> str:
         print("select", the_id)
     return the_id
 
-def set_last_id(previous_id: str, the_id: str):
+def set_last_id(previous_id: str, the_id: str, dynamo=None):
     #same, but updating the last id
-    table = get_table()
+
+    if not dynamo:
+        dynamo = get_dynamo()
+
+    table = get_table(dynamo)
 
     has_data = previous_id is not None
 
@@ -123,7 +128,9 @@ def get_table(dynamo=None):
 def run():
     api = get_api()
 
-    last_id = get_last_id()
+    dynamo = get_dynamo()
+
+    last_id = get_last_id(dynamo)
     previous_id = last_id
 
     query_count = 5
@@ -166,8 +173,6 @@ def run():
             last_id_set = True
 
     if last_id_set and last_id != previous_id:
-        print("RODA NO AWS!")
-        # set_last_id(previous_id, last_id)
+        set_last_id(previous_id, last_id, dynamo)
 
 run()
-
