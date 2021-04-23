@@ -16,14 +16,14 @@ ACCESS_SECRET = environ["ACCESS_SECRET"]
 AWS_SERVER_PUBLIC_KEY = environ["AWS_SERVER_PUBLIC_KEY"]
 AWS_SERVER_SECRET_KEY = environ["AWS_SERVER_SECRET_KEY"]
 
-TWEET_QUERY = "matcherino.com/tournaments -filter:retweets"
+TWEET_QUERY = environ["TWEET_QUERY"] 
 
 USE_LOCAL_DB = False
 LOCAL_DB = "http://localhost:8000"
-REMOTE_DB = "us-east-2"
-DATA_TABLE = "MatcherinoBot"
+REMOTE_DB = environ["REMOTE_DB"]
+DATA_TABLE = "RetweetBots"
 KEY_FIELD = "row_id"
-KEY_VALUE = "DATA_ROW"
+KEY_VALUE = environ["KEY_VALUE"]
 LAST_ID_FIELD = "last_id"
 
 def create_table(dynamodb=None):
