@@ -80,7 +80,6 @@ def get_last_id(dynamo=None) -> str:
 
 def set_last_id(previous_id: str, the_id: str, dynamo=None):
     #same, but updating the last id
-
     if not dynamo:
         dynamo = get_dynamo()
 
@@ -133,7 +132,7 @@ def run():
     last_id = get_last_id(dynamo)
     previous_id = last_id
 
-    query_count = 5
+    query_count = int(environ["QUERY_COUNT"]) if "QUERY_COUNT" in environ else 5
 
     #if there's no last id, get one to use as base
     if last_id is None:
@@ -142,11 +141,10 @@ def run():
     tweets = tweepy.Cursor(api.search,
               q=TWEET_QUERY,
               result_type="recent",
-              lang="pt",
               since_id=last_id,
-              include_entities=False).items(query_count)
+              include_entities=False).items()
 
-    last_id_set = False
+    tweet_id_list = []
 
     for tweet in tweets:
         if tweet.in_reply_to_status_id is not None:
@@ -156,23 +154,36 @@ def run():
         elif hasattr(tweet, 'retweeted_status'):
             if DEBUG: print("Is a retweet itself, ignoring...")
         else:
+            tweet_id_list.append(tweet.id_str)
+            
+    tweet_id_list.reverse()
+
+    # print(tweet_id_list)
+
+    rt_count = 0
+    for tweet_id in tweet_id_list:
+        try:
             if DEBUG:
-                print(tweet.created_at, tweet.id_str
-                 , tweet.text[0:50]
-                )
+                print(tweet_id)
+                # not setting id to keep at same position for non-debug run
+                # last_id = tweet_id
+            else:                
+                last_id = tweet_id
+                api.retweet(id=tweet_id)
+                
+
+            rt_count += 1
+            if rt_count == query_count:
+                break
+        except tweepy.error.TweepError as e:
+            # already retweeted
+            if e.api_code == 327:
+                if DEBUG: print("already retweeted")
             else:
-                try:
-                    api.retweet(id=tweet.id_str)
-                except tweepy.error.TweepError as e:
-                    # already retweeted
-                    if e.api_code != 327:
-                        raise
+                raise
 
-        if not last_id_set:
-            last_id = tweet.id_str
-            last_id_set = True
-
-    if last_id_set and last_id != previous_id:
+    if last_id != previous_id:
         set_last_id(previous_id, last_id, dynamo)
 
-run()
+if __name__ == "__main__":
+    run()
